@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.linalg import expm
-from lchs import lchs
+from lchs import lchs, lchs_block_encoded
 
 def spectral_diff_adv(n, t, cx, c, D, L, a, init_state):
     """Computes the exact pseudo-spectral solution phi(t) = exp(-At) * phi(0)."""
@@ -77,7 +77,7 @@ errs = []
 
 for t in ts:
     # Note: r_steps is removed as LCHS integrates the full time t natively.
-    lchs_state, success_prob = lchs(
+    lchs_state, success_prob = lchs_block_encoded(
         n_qubits,
         t,
         cx,
