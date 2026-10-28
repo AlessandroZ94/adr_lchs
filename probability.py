@@ -23,8 +23,9 @@ c = -4*(c_H -c_L)/L**2 *x**2 + 4*(c_H -c_L)/L *x
 #cx = np.zeros_like(x)
 cx = -8*(c_H - c_L)/L**2 *x + 4*(c_H -c_L)/L 
 
-a = 0.1
-a_x = a*np.ones_like(x)#a*np.ones_like(x)+0.05*np.sin(2*np.pi*x/L)
+a_am = 0.0
+a_mid = 0.0
+a_x = (a_am * np.sin(x)+a_mid)
 
 # Initial State: Gaussian centered in the middle
 sigma = L/20
@@ -36,7 +37,7 @@ ts = np.linspace(0, time, 1000)
 plt.rcParams.update({
     "text.usetex": True,
     "font.size": 16,
-    "figure.figsize": (6, 5), 
+    "figure.figsize": (5, 4), 
     "axes.labelsize": 16,       
     "xtick.labelsize": 16,
     "ytick.labelsize": 16,
@@ -62,9 +63,8 @@ if Tau_r != np.inf:
 plt.axvline(Tau_D, color='g', linestyle='--', label=r'$t=\tau_D$')
 plt.xlabel('$t$')
 plt.ylabel('$p$')
-plt.legend()
-plt.ylim(1e-5,1e0+0.1)
-plt.xlim(0, time)
-stringname="./figures/prob_decay_"+str(a)+".pdf"
+plt.ylim(1e-8, 1)
+plt.legend(loc='best', fontsize=14)
+stringname="./figures/prob_decay_"+str(a_am)+".pdf"
 plt.savefig(stringname, bbox_inches='tight')
 plt.show()

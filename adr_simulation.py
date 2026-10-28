@@ -34,7 +34,7 @@ def spectral_diff_adv(n, t, cx, c, D, L, a, init_state):
 # ==== SIMULATION EXECUTION ====
 n_qubits = 5
 
-D = 0.001
+D = 0.1
 a_am = 0.1
 a_mid = 0.2
 c_max = 0.4
@@ -49,9 +49,6 @@ c_H = c_max
 c = -4*(c_H - c_L)/L**2 * x**2 + 4*(c_H - c_L)/L * x 
 cx = -8*(c_H - c_L)/L**2 * x + 4*(c_H - c_L)/L 
 
-plt.plot(x, c, 'k-', label='$c(x)$')
-plt.plot(x, cx, 'k--', label='$c\'(x)$')
-plt.show()
 a = (a_am * np.sin(x)+a_mid)
 # Initial State: Gaussian
 sigma = L/20
@@ -77,7 +74,7 @@ errs = []
 
 for t in ts:
     # Note: r_steps is removed as LCHS integrates the full time t natively.
-    lchs_state, success_prob = lchs_block_encoded(
+    lchs_state, success_prob = lchs(
         n_qubits,
         t,
         cx,
@@ -86,7 +83,8 @@ for t in ts:
         L,
         a=a,
         init_state=state,
-        fixed_J=True,
+        eps=1e-3,
+        fixed_J=False,
     )
     lchs_state = np.concatenate((lchs_state, [lchs_state[0]]))  # Enforce periodicity
     exact = spectral_diff_adv(n_qubits, t, cx, c, D, L, a, init_state=state)

@@ -139,7 +139,6 @@ def lchs_block_encoded(n, t, cx, c, D, L, a, init_state, eps=1e-3, normalize=Tru
         final = system_state
     
     return final, success_prob
-
 def lchs(
     n,
     t,
@@ -153,11 +152,8 @@ def lchs(
     normalize=True,
     fixed_J=False,
     J=128,
-    *,
-    r_steps=None,
-    useFixedJ=None,
 ):
-    """Apply LCHS with exact SELECT blocks; legacy Trotter arguments remain accepted."""
+    """Apply LCHS with exact SELECT blocks."""
     N = 2**n
     if init_state is None:
         if a is None:
@@ -166,15 +162,6 @@ def lchs(
         a = None
     if a is None:
         a = np.zeros_like(c)
-
-    if useFixedJ is not None:
-        fixed_j_requested = useFixedJ
-        if useFixedJ and isinstance(fixed_J, (int, np.integer)) and not isinstance(fixed_J, (bool, np.bool_)):
-            J = fixed_J
-    else:
-        fixed_j_requested = fixed_J
-        if isinstance(fixed_J, (int, np.integer)) and not isinstance(fixed_J, (bool, np.bool_)):
-            J = fixed_J
 
     if not np.isfinite(eps) or eps <= 0:
         raise ValueError("eps must be a finite positive number.")
@@ -215,24 +202,26 @@ def lchs(
     const = (3 + 3 / (2 * np.pi)) / eps
     gamma = np.sqrt(1 + np.log(const))
     radius = 2 * (1 + np.log(const))
+    
     k = int(
         np.ceil(
             np.log2(
-                2
-                / np.pi
-                * (1 + np.log(const))
-                * (norm / 2 + 1.5 + np.log(64 / (5 * eps)))
+                (2 / np.pi) 
+                * (1 + np.log(const)) 
+                * (norm / 2 + 1.5 + np.log(64 / (5 * eps))) 
                 + 1
             )
         )
     )
     h = radius / (2**k - 1)
-    J_int = radius / h
-    J_eff = 2 ** np.ceil(np.log2(J_int))
+    
+    if fixed_J:
+        J_eff = int(J)
+    else:
+        J_int = radius / h
+        J_eff = int(2 ** np.ceil(np.log2(J_int)))
 
-    if fixed_j_requested:
-        J_eff = J
-    J_eff = int(J_eff)
+    print(f"using J={J_eff}")
     if J_eff <= 0 or J_eff & (J_eff - 1):
         raise ValueError("The fixed LCHS term count J must be a positive power of two.")
 
