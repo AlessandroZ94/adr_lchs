@@ -197,7 +197,7 @@ def lchs(
     L_mat = -D * D2_mat + R_mat + 0.5 * C_prime - shift * np.eye(N)
     H_mat = -0.5j * (C_mat @ D_mat + D_mat @ C_mat)
 
-    norm_L = D * (np.pi * N / L) ** 2 + np.max(np.abs(cx / 2))
+    norm_L = D * (np.pi * N / L) ** 2 + np.max(np.abs(cx / 2)) + np.max(np.abs(a))
     norm = t * norm_L
     const = (3 + 3 / (2 * np.pi)) / eps
     gamma = np.sqrt(1 + np.log(const))
@@ -236,6 +236,8 @@ def lchs(
         / (1 + omega_vals**2)
     )
     magnitudes = np.abs(weights)
+    
+    alpha = np.sum(magnitudes)
     phases = np.angle(weights)
 
     coeffs = np.sqrt(magnitudes)
@@ -261,10 +263,13 @@ def lchs(
 
     final_state = Statevector(circuit)
     full_data = np.array(final_state)
-    system_state = full_data[:N]
-    system_state = system_state * np.exp(-shift * t)
+    
+    system_raw = full_data[:N]
+    
+    success_prob = np.linalg.norm(system_raw) ** 2
+    
+    system_state = system_raw * np.exp(-shift * t) * alpha
 
-    success_prob = np.linalg.norm(system_state) ** 2
     print(f"Success Probability at t={t}: {success_prob:.4e}")
 
     if normalize:

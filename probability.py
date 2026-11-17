@@ -45,8 +45,17 @@ plt.rcParams.update({
 plt.figure()
 norms = []
 
+
+lambda_val = np.min(np.diag(a_x + 0.5 * cx))
+if lambda_val < 0:
+    shift = lambda_val
+    print(f"Applying shift lambda = {shift:.4f} to ensure positive semidefiniteness.")
+else:
+    shift = 0.0
+
+#shift = 0.0
 for t in ts:
-    U, A = spectral_diff_adv_op(n_qubits, t, cx, c, D, L, a_x, 0)
+    U, A = spectral_diff_adv_op(n_qubits, t, cx, c, D, L, a_x, shift)
     norm = np.linalg.norm(U,2)**2
     norms.append(norm)
 plt.semilogy(ts, np.exp(-2)*np.array(norms), '-', label='$e^{-2}\Vert U(t) \Vert^2$')

@@ -34,7 +34,7 @@ def spectral_diff_adv(n, t, cx, c, D, L, a, init_state):
 # ==== SIMULATION EXECUTION ====
 n_qubits = 5
 
-D = 0.1
+D = 0.001
 a_am = 0.1
 a_mid = 0.2
 c_max = 0.4
@@ -58,11 +58,12 @@ state = state / np.linalg.norm(state)
 
 ts = [0.5, 1.0, 1.5, 2.0]
 
-plt.rcParams.update({""
+plt.rcParams.update({
     "text.usetex": True,
+    "text.latex.preamble": r"\usepackage{amsmath}", # Loads amsmath for \boldsymbol
     "font.size": 16,
-    "figure.figsize": (5, 4), # SMALLER figure = LARGER relative text
-    "axes.labelsize": 16,       # Now 14 will look huge and readable
+    "figure.figsize": (5, 4),
+    "axes.labelsize": 16,
     "xtick.labelsize": 16,
     "ytick.labelsize": 16,
 })
@@ -73,7 +74,7 @@ plt.plot(x_periodic, np.concatenate((state, [state[0]])), 'k-', label='$t=0$',)
 errs = []
 
 for t in ts:
-    # Note: r_steps is removed as LCHS integrates the full time t natively.
+    # Explicitly set normalize=False to compare the true decaying amplitudes
     lchs_state, success_prob = lchs(
         n_qubits,
         t,
@@ -85,10 +86,13 @@ for t in ts:
         init_state=state,
         eps=1e-3,
         fixed_J=False,
+        normalize=False, 
     )
-    lchs_state = np.concatenate((lchs_state, [lchs_state[0]]))  # Enforce periodicity
+    lchs_state = np.concatenate((lchs_state, [lchs_state[0]]))
+    
     exact = spectral_diff_adv(n_qubits, t, cx, c, D, L, a, init_state=state)
-    exact = np.concatenate((exact, [exact[0]]))  # Enforce periodicity
+    exact = np.concatenate((exact, [exact[0]]))
+    
     errs.append(np.linalg.norm(np.real(lchs_state) - np.real(exact)))
     lchs_state = np.real(lchs_state)
     exact = np.real(exact)
@@ -107,6 +111,6 @@ plt.show()
 plt.figure() 
 plt.semilogy(ts, errs, 'o-')
 plt.xlabel('$t$')
-plt.ylabel('$|||\\phi\\rangle- |\\phi_{h}\\rangle ||$')
+plt.ylabel(r'$||\boldsymbol{\phi} - \boldsymbol{\phi}_{h}||_2$')
 plt.savefig(f'./figures/diff_adv_error_{parameter_suffix}.pdf', bbox_inches='tight')
 plt.show()
