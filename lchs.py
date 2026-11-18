@@ -22,123 +22,6 @@ def get_qft_mat(n):
 
     return qft, qft_inv
 
-
-def lchs_block_encoded(n, t, cx, c, D, L, a, init_state, eps=1e-3, normalize=True, fixed_J=False, J=128):
-    N = 2**n
-    dx = L / N
-    d_dim = 1
-    
-    # --- 1. CONSTRUCT EXACT GENERATORS ---
-    j_indices = np.arange(N)
-    k_indices = np.where(j_indices < N/2, j_indices, j_indices - N)
-    k_vals_spectral = (2 * np.pi / L) * k_indices
-    
-    P = np.diag(1j * k_vals_spectral)
-    P2 = np.diag(-k_vals_spectral**2)
-
-    omega = np.exp(2j * np.pi / N)
-    j_mesh, k_mesh = np.meshgrid(np.arange(N), np.arange(N))
-    QFT = np.power(omega, j_mesh * k_mesh) / np.sqrt(N)
-    QFT_dag = QFT.conj().T
-    
-    D_mat = QFT @ P @ QFT_dag
-    D2_mat = QFT @ P2 @ QFT_dag
-    
-    C_mat = np.diag(c)
-    C_prime = np.diag(cx)
-    R_mat = np.diag(a)
-    
-    # Shift Lambda (Eq. 18 & Appendix B.3)
-    lambda_val = np.min(np.diag(R_mat + 0.5 * C_prime).real)
-    shift = lambda_val if lambda_val < 0 else 0.0
-        
-    L_mat = -D * D2_mat + R_mat + 0.5 * C_prime - shift * np.eye(N)
-    H_mat = -0.5j * (C_mat @ D_mat + D_mat @ C_mat)
-    
-    # --- 2. APPENDIX B: BLOCK ENCODING CONSTANTS ---
-    # Alpha_H (Eq. B24)
-    Gamma_c = np.max(np.abs(c))
-    alpha_H = (4 * np.pi * d_dim / dx) * Gamma_c
-    
-    # Alpha_L (Eq. B30)
-    R_tilde_diag = np.diag(R_mat + 0.5 * C_prime) - shift
-    Gamma_R = np.max(R_tilde_diag) - np.min(R_tilde_diag)
-    alpha_L = (4 * D * d_dim * np.pi**2 / dx**2) + Gamma_R
-    
-    # --- 3. LCHS & QSP PARAMETERS ---
-    c_lchs = 1
-    const = (3 + 3/(2*np.pi)) / eps
-    gamma = np.sqrt(1 + np.log(const))
-    R = 2 * (1 + np.log(const))
-    
-    # Determine step size h using optimal k (Sec 3.2 LCHS for ADR)
-    k = np.ceil(np.log2( (2/np.pi) * (1+np.log(const)) * (t/2 * alpha_L + 1.5 + np.log(64/(5*eps))) + 1 ))
-    h = R / (2**k - 1)
-    
-    J_int = R / h
-    J_eff = int(2**np.ceil(np.log2(J_int)))
-    if fixed_J:
-        J_eff = J
-    n_ancilla = int(np.log2(2 * J_eff))
-    
-    j_vals = np.arange(-J_eff, J_eff) 
-    omega_vals = h * j_vals
-    
-    # Integral weights
-    weights = (h / np.pi) * np.exp(c_lchs*(1-1j*omega_vals)) * np.exp(-(omega_vals**2+1)/(4*gamma**2)) / (1 + omega_vals**2)
-    magnitudes = np.abs(weights)
-    phases = np.angle(weights)
-
-    coeffs = np.sqrt(magnitudes)
-    coeffs = coeffs / np.linalg.norm(coeffs)         
-
-    # --- 4. CONSTRUCT MULTIPLEXED BLOCK ENCODING (W_MULH) ---
-    # In hardware, W_MULH uses Z_s and Z_k to dynamically assemble hj*L + H.
-    # In statevector simulation, we construct the equivalent block-diagonal matrix.
-    V_blocks = []
-    for j in j_vals:
-        # W_MULH exactly maps to this exponent for each j state
-        w_mulh_j = h * j * L_mat + H_mat
-        
-        # QSP implements the exponential of the block-encoded generator
-        # U_QSP = exp(-i * W_MULH * t)
-        V_blocks.append(expm(-1j * w_mulh_j * t))
-        
-    SEL_matrix = block_diag(*V_blocks)
-
-    # ==== 5. CIRCUIT CONSTRUCTION ====
-    reg_s = QuantumRegister(n, 'system')
-    reg_a = QuantumRegister(n_ancilla, 'lchs_ancilla') 
-    circuit = QuantumCircuit(reg_s, reg_a)
-
-    circuit.append(StatePreparation(init_state), reg_s)
-
-    # LCU State Preparation
-    prep_gate = StatePreparation(coeffs)
-    circuit.append(prep_gate, reg_a)
-    circuit.append(DiagonalGate(np.exp(1j * phases)), reg_a)
-
-    # Apply the optimal QSP simulated unitary (W_MULH Evolution)
-    circuit.append(UnitaryGate(SEL_matrix, label="W_MULH_QSP"), list(reg_s) + list(reg_a))
-
-    # LCU Un-prepare
-    circuit.append(prep_gate.inverse(), reg_a)
-
-    # ==== 6. SIMULATION & POST-SELECTION ====
-    final_state = Statevector(circuit)
-    full_data = np.array(final_state)
-
-    system_state = full_data[:N]
-    system_state = system_state * np.exp(-shift * t)
-
-    success_prob = np.linalg.norm(system_state)**2
-    
-    if normalize:
-        final = system_state / np.linalg.norm(system_state)
-    else:
-        final = system_state
-    
-    return final, success_prob
 def lchs(
     n,
     t,
@@ -289,7 +172,7 @@ def spectral_diff_adv_op(n, t, cx, c, D, L, a, shift=0):
     D1 = QFT_inv @ P1 @ QFT
     D2 = QFT_inv @ P2 @ QFT
 
-    A = - (D*D2-0.5*(np.diag(c) @ D1 + D1 @ np.diag(c)) - 0.5*np.diag(cx)-np.diag(a)) + shift * np.eye(N)
+    A = - (D*D2 - 0.5*(np.diag(c) @ D1 + D1 @ np.diag(c)) - 0.5*np.diag(cx) - np.diag(a)) - shift * np.eye(N)
     U = expm(-A*t)
     return U, A
 

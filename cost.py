@@ -12,11 +12,11 @@ def computeTotalGateCost(n, t, eps, R, alpha_h, alpha_l, alpha, x=1.0):
 def computeGateCost(n, t, eps, R, alpha_h, alpha_l):
     return n * np.log(n * t / eps * (R * alpha_l + alpha_h))
 
-plt.rcParams.update({
+plt.rcParams.update({""
     "text.usetex": True,
-    "font.size": 16,
-    "figure.figsize": (5, 4), 
-    "axes.labelsize": 16,      
+    "font.size": 18,
+    "figure.figsize": (5, 4), # SMALLER figure = LARGER relative text
+    "axes.labelsize": 18,       # Now 14 will look huge and readable
     "xtick.labelsize": 16,
     "ytick.labelsize": 16,
 })

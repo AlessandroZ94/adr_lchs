@@ -34,11 +34,11 @@ state = state / np.linalg.norm(state)
 
 ts = np.linspace(0, time, 1000)
 
-plt.rcParams.update({
+plt.rcParams.update({""
     "text.usetex": True,
-    "font.size": 16,
-    "figure.figsize": (5, 4), 
-    "axes.labelsize": 16,       
+    "font.size": 18,
+    "figure.figsize": (5, 4), # SMALLER figure = LARGER relative text
+    "axes.labelsize": 18,       # Now 14 will look huge and readable
     "xtick.labelsize": 16,
     "ytick.labelsize": 16,
 })
@@ -46,12 +46,9 @@ plt.figure()
 norms = []
 
 
-lambda_val = np.min(np.diag(a_x + 0.5 * cx))
-if lambda_val < 0:
-    shift = lambda_val
-    print(f"Applying shift lambda = {shift:.4f} to ensure positive semidefiniteness.")
-else:
-    shift = 0.0
+lambda_val = np.min(a_x + 0.5 * cx)
+shift = lambda_val if lambda_val < 0 else 0.0
+print(f"Shift value: {shift}")
 
 #shift = 0.0
 for t in ts:

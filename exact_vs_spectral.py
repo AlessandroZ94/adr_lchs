@@ -10,9 +10,9 @@ ns = [2, 3, 4, 5, 6, 7, 8]
 errs = []
 plt.rcParams.update({""
     "text.usetex": True,
-    "font.size": 16,
+    "font.size": 18,
     "figure.figsize": (5, 4), # SMALLER figure = LARGER relative text
-    "axes.labelsize": 16,       # Now 14 will look huge and readable
+    "axes.labelsize": 18,       # Now 14 will look huge and readable
     "xtick.labelsize": 16,
     "ytick.labelsize": 16,
 })
@@ -22,10 +22,11 @@ for n_qubits in ns:
     D = 0.1
     N = 2**n_qubits
     L = 2 * np.pi               
-    t = 0.5   
+    t=0.5
+    #t = 10.0   
     x = np.linspace(0, L, N, endpoint=False)
     dx = L / N
-    a = 0.0
+    a = 0.01
 
     # Parameters
     c_L = 0.0
@@ -34,7 +35,6 @@ for n_qubits in ns:
     cx = np.zeros_like(x)
 
     # Initial State: Gaussian centered in the middle
-
     state = np.zeros_like(x)
     x_0 = dx * N/2
     state[N//2] = 1.0
@@ -45,7 +45,6 @@ for n_qubits in ns:
 
     spectral = spectral_diff_adv(n_qubits, t, cx, c, D, L, a*np.ones_like(c), init_state=state, normalize=False)
     spectral = np.concatenate((spectral, [spectral[0]]))  # Enforce periodicity
-    #fd = fe_fd_diff_adv(n_qubits, t, cx, c, D, L, np.zeros_like(c), init_state=state)
     
     exact = + 1/(L)*np.exp(-a*t) + np.zeros_like(x)
     for k in range(1,1000):
@@ -58,9 +57,6 @@ for n_qubits in ns:
     if N == 8 or N == 16 or N==32:
         line, = plt.plot(np.concatenate((x, [L])), np.real(spectral), 'o--', markersize=4, label=f'$N={N:.0f}$')
 
-    #color = line.get_color()
-    #plt.plot(x, fd, 'x', color=color, markersize=4)
-    #plt.plot(x, exact, '-', color=color, label=f'$N={N:.0f}$', )
     errs.append(np.linalg.norm(np.real(spectral) - exact,np.inf))
 
 x = np.concatenate((x, [L]))  # Enforce periodicity

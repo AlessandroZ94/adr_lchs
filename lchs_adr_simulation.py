@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.linalg import expm
-from lchs import lchs, lchs_block_encoded
+from lchs import lchs
 
 def spectral_diff_adv(n, t, cx, c, D, L, a, init_state):
     """Computes the exact pseudo-spectral solution phi(t) = exp(-At) * phi(0)."""
@@ -35,6 +35,7 @@ def spectral_diff_adv(n, t, cx, c, D, L, a, init_state):
 n_qubits = 5
 
 D = 0.001
+#D=0.1
 a_am = 0.1
 a_mid = 0.2
 c_max = 0.4
@@ -58,12 +59,13 @@ state = state / np.linalg.norm(state)
 
 ts = [0.5, 1.0, 1.5, 2.0]
 
-plt.rcParams.update({
+
+plt.rcParams.update({""
     "text.usetex": True,
+    "font.size": 18,
     "text.latex.preamble": r"\usepackage{amsmath}", # Loads amsmath for \boldsymbol
-    "font.size": 16,
-    "figure.figsize": (5, 4),
-    "axes.labelsize": 16,
+    "figure.figsize": (5, 4), # SMALLER figure = LARGER relative text
+    "axes.labelsize": 18,       # Now 14 will look huge and readable
     "xtick.labelsize": 16,
     "ytick.labelsize": 16,
 })
@@ -88,12 +90,13 @@ for t in ts:
         fixed_J=False,
         normalize=False, 
     )
-    lchs_state = np.concatenate((lchs_state, [lchs_state[0]]))
-    
     exact = spectral_diff_adv(n_qubits, t, cx, c, D, L, a, init_state=state)
+    errs.append(np.linalg.norm(np.real(lchs_state) - np.real(exact)))
+
+    #plot
+    lchs_state = np.concatenate((lchs_state, [lchs_state[0]]))
     exact = np.concatenate((exact, [exact[0]]))
     
-    errs.append(np.linalg.norm(np.real(lchs_state) - np.real(exact)))
     lchs_state = np.real(lchs_state)
     exact = np.real(exact)
     line, = plt.plot(x_periodic, lchs_state/np.linalg.norm(lchs_state), 'o', markersize=4)
@@ -112,5 +115,7 @@ plt.figure()
 plt.semilogy(ts, errs, 'o-')
 plt.xlabel('$t$')
 plt.ylabel(r'$||\boldsymbol{\phi} - \boldsymbol{\phi}_{h}||_2$')
+ax = plt.gca()
+ax.set_ylim(9e-8, 3e-7)
 plt.savefig(f'./figures/diff_adv_error_{parameter_suffix}.pdf', bbox_inches='tight')
 plt.show()
